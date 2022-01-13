@@ -303,7 +303,7 @@ export class NetworkComponent extends ViewControllerComponent implements OnInit,
       this.staticRoutesTableConf.tableComponent.getData();
     });
 
-    this.checkInterfacePendingChanges();
+    this.afterInterfacesFormClosed();
     this.core
       .register({ observerClass: this, eventName: 'NetworkInterfacesChanged' })
       .pipe(untilDestroyed(this))
@@ -337,51 +337,58 @@ export class NetworkComponent extends ViewControllerComponent implements OnInit,
     }
   }
 
-  checkInterfacePendingChanges(): void {
+  private async afterInterfacesFormClosed(): Promise<void> {
     if (this.interfaceTableConf.tableComponent) {
       this.interfaceTableConf.tableComponent.getData();
     }
-    this.checkPendingChanges();
-    this.checkWaitingCheckin();
+
+    const hasPendingChanges = await this.getPendingChanges();
+    const checkingWaitingSeconds = await this.getCheckingWaitingSeconds();
+    if (hasPendingChanges && checkingWaitingSeconds > 0) {
+      // TODO: Implement WS call
+      // *** ->interface <CANCEL COMMIT> , expected result:
+      //     <-interface.checkin_waiting {seconds: null} <-- stop the countdown
+      //     <-interface.has_pending_changes {hasPendingChanges: true} <-- but keep Pending changes
+    }
+    this.hasPendingChanges = hasPendingChanges;
+    this.handleWaitingCheckin(checkingWaitingSeconds);
   }
 
-  checkPendingChanges(): void {
-    this.ws
-      .call('interface.has_pending_changes')
+  private getCheckingWaitingSeconds(): Promise<number> {
+    return this.ws.call('interface.checkin_waiting')
       .pipe(untilDestroyed(this))
-      .subscribe((hasPendingChanges) => {
-        this.hasPendingChanges = hasPendingChanges;
-      });
+      .toPromise();
   }
 
-  checkWaitingCheckin(): void {
-    this.ws
-      .call('interface.checkin_waiting')
+  private getPendingChanges(): Promise<boolean> {
+    return this.ws.call('interface.has_pending_changes')
       .pipe(untilDestroyed(this))
-      .subscribe((seconds) => {
-        if (seconds != null) {
-          if (seconds > 0 && this.checkinRemaining == null) {
-            this.checkinRemaining = Math.round(seconds);
-            this.checkinInterval = setInterval(() => {
-              if (this.checkinRemaining > 0) {
-                this.checkinRemaining -= 1;
-              } else {
-                this.checkinRemaining = null;
-                this.checkinWaiting = false;
-                clearInterval(this.checkinInterval);
-                window.location.reload(); // should just refresh after the timer goes off
-              }
-            }, 1000);
-          }
-          this.checkinWaiting = true;
-        } else {
-          this.checkinWaiting = false;
-          this.checkinRemaining = null;
-          if (this.checkinInterval) {
+      .toPromise();
+  }
+
+  private handleWaitingCheckin(seconds: number): void {
+    if (seconds != null) {
+      if (seconds > 0 && this.checkinRemaining == null) {
+        this.checkinRemaining = Math.round(seconds);
+        this.checkinInterval = setInterval(() => {
+          if (this.checkinRemaining > 0) {
+            this.checkinRemaining -= 1;
+          } else {
+            this.checkinRemaining = null;
+            this.checkinWaiting = false;
             clearInterval(this.checkinInterval);
+            window.location.reload(); // should just refresh after the timer goes off
           }
-        }
-      });
+        }, 1000);
+      }
+      this.checkinWaiting = true;
+    } else {
+      this.checkinWaiting = false;
+      this.checkinRemaining = null;
+      if (this.checkinInterval) {
+        clearInterval(this.checkinInterval);
+      }
+    }
   }
 
   commitPendingChanges(): void {
@@ -424,7 +431,7 @@ export class NetworkComponent extends ViewControllerComponent implements OnInit,
                 .call('interface.commit', [{ checkin_timeout: this.checkinTimeout }])
                 .pipe(untilDestroyed(this))
                 .subscribe(
-                  () => {
+                  async () => {
                     this.core.emit({
                       name: 'NetworkInterfacesChanged',
                       data: { commit: true, checkin: false },
@@ -432,7 +439,7 @@ export class NetworkComponent extends ViewControllerComponent implements OnInit,
                     });
                     this.interfaceTableConf.tableComponent.getData();
                     this.loader.close();
-                    this.checkWaitingCheckin();
+                    this.handleWaitingCheckin(await this.getCheckingWaitingSeconds());
                   },
                   (err) => {
                     this.loader.close();
@@ -638,7 +645,7 @@ export class NetworkComponent extends ViewControllerComponent implements OnInit,
 
   showInterfacesForm(id?: string): void {
     const interfacesForm = this.modalService.openInSlideIn(InterfacesFormComponent, id);
-    interfacesForm.afterModalFormClosed = this.checkInterfacePendingChanges.bind(this);
+    interfacesForm.afterModalFormClosed = this.afterInterfacesFormClosed.bind(this);
   }
 
   openvpnDataSourceHelper(res: any[]): any[] {
