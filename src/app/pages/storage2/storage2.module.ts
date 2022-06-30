@@ -33,6 +33,7 @@ import { ImportPoolComponent } from 'app/pages/storage2/components/import-pool/i
 import { ManagerComponent } from 'app/pages/storage2/components/manager/manager.component';
 import { VdevComponent } from 'app/pages/storage2/components/manager/vdev/vdev.component';
 import { PoolsDashboardComponent } from 'app/pages/storage2/components/pools-dashboard/pools-dashboard.component';
+import { WidgetTopologyComponent } from 'app/pages/storage2/components/pools-dashboard/widget-topology/widget-topology.component';
 import { GaugeChartComponent } from 'app/pages/storage2/components/pools-dashboard/widget-usage/gauge-chart/gauge-chart.component';
 import { WidgetUsageComponent } from 'app/pages/storage2/components/pools-dashboard/widget-usage/widget-usage.component';
 import { routing } from 'app/pages/storage2/storage2.routing';
@@ -79,6 +80,7 @@ import { ZfsHealthCardComponent } from './components/zfs-health-card/zfs-health-
     PoolsDashboardComponent,
     WidgetUsageComponent,
     GaugeChartComponent,
+    WidgetTopologyComponent,
     ImportPoolComponent,
     VdevComponent,
     ManagerComponent,
