@@ -7,7 +7,6 @@ import { TranslateService } from '@ngx-translate/core';
 import { PoolStatus } from 'app/enums/pool-status.enum';
 import { Pool } from 'app/interfaces/pool.interface';
 import { VolumeData } from 'app/interfaces/volume-data.interface';
-import { WidgetComponent } from 'app/pages/dashboard/components/widget/widget.component';
 import { WidgetUtils } from 'app/pages/dashboard/utils/widget-utils';
 
 interface UsageState {
@@ -34,7 +33,7 @@ const maxPct = 80;
   templateUrl: './widget-usage.component.html',
   styleUrls: ['./widget-usage.component.scss'],
 })
-export class WidgetUsageComponent extends WidgetComponent implements OnInit, OnChanges {
+export class WidgetUsageComponent implements OnInit, OnChanges {
   @Input() poolState: Pool;
   @Input() volumeData: VolumeData;
   @Input() loading = true;
@@ -58,7 +57,6 @@ export class WidgetUsageComponent extends WidgetComponent implements OnInit, OnC
     public router: Router,
     public translate: TranslateService,
   ) {
-    super(translate);
     this.utils = new WidgetUtils();
   }
 
